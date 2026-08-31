@@ -8,6 +8,7 @@ import (
 )
 
 type Database = sqlhost.Database
+type DBTX = sqlhost.DBTX
 
 type Dialect interface {
 	Identifier(string) string
@@ -26,6 +27,10 @@ type MigrationRegistrar interface {
 
 type Host interface {
 	Database() Database
+	// DatabaseFor returns the host transaction carried by ctx when one exists,
+	// otherwise the host database. Embedded Report persistence must use this
+	// instead of inventing a module-owned transaction boundary.
+	DatabaseFor(context.Context) DBTX
 	Dialect() Dialect
 	Migrations() MigrationRegistrar
 }
