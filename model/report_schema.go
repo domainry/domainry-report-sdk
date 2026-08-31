@@ -175,7 +175,7 @@ type ReportExportRecordMappingSchema struct {
 	DownloadFilenameField    string   `json:"download_filename_field"`
 	DownloadContentHashField string   `json:"download_content_hash_field"`
 	DownloadExpiresAtField   string   `json:"download_expires_at_field"`
-	DownloadTokenField       string   `json:"download_token_field,omitempty"`
+	DownloadJobIDField       string   `json:"download_job_id_field,omitempty"`
 	DownloadWatermarkedField string   `json:"download_watermarked_field,omitempty"`
 	DownloadNumberField      string   `json:"download_number_field,omitempty"`
 }
