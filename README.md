@@ -5,7 +5,9 @@ Deployment-neutral contracts between Domainry Runtime and the Report owner.
 ## Package layout
 
 - The root package is the stable Report factory, application binding, query, snapshot, and export boundary.
+- `contract` contains the dataset-plan validator and canonical hashing/filename helpers shared by authoring, owners, hosts, and workers.
 - `model` contains Report-owned definitions, caller authority, source projections, requests, results, snapshots, and export values shared at the SDK boundary.
+- `query` contains portable object/field metadata; `query/objectsql` owns the deployment-neutral Object SQL definition compiler and parameter contract. Physical SQL execution remains in the Report host adapter.
 - `persistence` owns definition projection and snapshot claim, lease, fencing, completion, and failure contracts.
 - `modulehost` describes the host database, dialect, migration registrar, authenticated subject resolution, authorized record reads, source-version fencing, Object SQL execution, audit, atomic snapshot/notification commit, and Data Exchange integration borrowed by an embedded module.
 
