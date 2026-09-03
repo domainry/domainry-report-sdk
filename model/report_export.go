@@ -17,8 +17,6 @@ type ReportExportScopeRequest struct {
 	Purpose           string                      `json:"purpose"`
 	MetricDefinitions []ReportMetricDefinitionRef `json:"metric_definitions,omitempty"`
 	Freshness         ReportExportFreshness       `json:"freshness"`
-	RoleKey           string                      `json:"role_key,omitempty"`
-	DataScopes        map[string]string           `json:"data_scopes,omitempty"`
 }
 
 type ReportExportFilter struct {

@@ -44,7 +44,7 @@ type ExecutionAudit interface {
 // facts. Report owns scope normalization, projection, masking semantics and
 // Object SQL export policy.
 type ExportAuthorization interface {
-	AuthorizeReportExportSource(context.Context, string, reportmodel.ReportSubject) (string, error)
+	AuthorizeReportExportSource(context.Context, string, reportmodel.ReportSubject) error
 	AuthorizeReportExportField(context.Context, string, string, reportmodel.ReportSubject) (bool, error)
 }
 
