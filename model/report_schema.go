@@ -1,52 +1,17 @@
 package reportmodel
 
-import (
-	"encoding/json"
-)
-
 type LocalizedTextMap map[string]map[string]string
 
 type ReportSchema struct {
 	Key                  string                       `json:"key"`
 	Name                 string                       `json:"name,omitempty"`
 	I18n                 LocalizedTextMap             `json:"i18n,omitempty"`
-	Dataset              ReportDatasetSchema          `json:"dataset,omitempty"`
-	ObjectSQLV1          *ReportObjectSQLSchema       `json:"object_sql_v1,omitempty"`
+	ObjectSQLV1          *ReportObjectSQLSchema       `json:"object_sql_v1"`
 	RequiredPermissions  []string                     `json:"required_permissions,omitempty"`
 	AudienceRoles        []string                     `json:"audience_roles,omitempty"`
 	ExecutionScope       *ReportExecutionScopeSchema  `json:"execution_scope,omitempty"`
 	EvidenceRequirements []ReportEvidenceRequirement  `json:"evidence_requirements,omitempty"`
 	Materialization      *ReportMaterializationPolicy `json:"materialization,omitempty"`
-	ExportScope          *ReportExportScopeSchema     `json:"export_scope,omitempty"`
-}
-
-// MarshalJSON preserves the legacy Dataset representation while ensuring an
-// object_sql_v1 Report does not regrow an empty dataset during manifest
-// publication or round-trip hashing.
-func (r ReportSchema) MarshalJSON() ([]byte, error) {
-	type reportSchemaAlias ReportSchema
-	if r.ObjectSQLV1 == nil || ReportDatasetDefined(r.Dataset) {
-		return json.Marshal(reportSchemaAlias(r))
-	}
-	return json.Marshal(struct {
-		Key                  string                       `json:"key"`
-		Name                 string                       `json:"name,omitempty"`
-		I18n                 LocalizedTextMap             `json:"i18n,omitempty"`
-		ObjectSQLV1          *ReportObjectSQLSchema       `json:"object_sql_v1"`
-		RequiredPermissions  []string                     `json:"required_permissions,omitempty"`
-		AudienceRoles        []string                     `json:"audience_roles,omitempty"`
-		ExecutionScope       *ReportExecutionScopeSchema  `json:"execution_scope,omitempty"`
-		EvidenceRequirements []ReportEvidenceRequirement  `json:"evidence_requirements,omitempty"`
-		Materialization      *ReportMaterializationPolicy `json:"materialization,omitempty"`
-		ExportScope          *ReportExportScopeSchema     `json:"export_scope,omitempty"`
-	}{
-		Key: r.Key, Name: r.Name, I18n: r.I18n, ObjectSQLV1: r.ObjectSQLV1,
-		RequiredPermissions:  r.RequiredPermissions,
-		AudienceRoles:        r.AudienceRoles,
-		ExecutionScope:       r.ExecutionScope,
-		EvidenceRequirements: r.EvidenceRequirements, Materialization: r.Materialization,
-		ExportScope: r.ExportScope,
-	})
 }
 
 type ReportExecutionScopeSchema struct {
@@ -57,35 +22,6 @@ const ReportExecutionScopeCrossWorkspaceAggregateV1 = "cross_workspace_aggregate
 
 func ReportCrossWorkspaceAggregate(report ReportSchema) bool {
 	return report.ExecutionScope != nil && report.ExecutionScope.Mode == ReportExecutionScopeCrossWorkspaceAggregateV1
-}
-
-// ReportExportScopeSchema is a report-owned allowlist. It carries only typed
-// fields, closed operators, and declared joins; requests never supply SQL or
-// another executable query fragment.
-type ReportExportScopeSchema struct {
-	Query *ReportExportQueryScopeSchema `json:"query,omitempty"`
-	Tags  *ReportExportTagScopeSchema   `json:"tags,omitempty"`
-}
-
-type ReportExportQueryScopeSchema struct {
-	Mode       string                       `json:"mode"`
-	Predicates []ReportExportQueryPredicate `json:"predicates"`
-}
-
-type ReportExportQueryPredicate struct {
-	Field    ReportDatasetField `json:"field"`
-	Operator string             `json:"operator"`
-}
-
-type ReportExportTagScopeSchema struct {
-	Join              ReportDatasetJoin     `json:"join"`
-	FamilyJoin        *ReportDatasetJoin    `json:"family_join,omitempty"`
-	TargetField       ReportDatasetField    `json:"target_field"`
-	TagField          ReportDatasetField    `json:"tag_field"`
-	FixedFilters      []ReportDatasetFilter `json:"fixed_filters,omitempty"`
-	AllowedMatchModes []string              `json:"allowed_match_modes,omitempty"`
-	DefaultMatchMode  string                `json:"default_match_mode,omitempty"`
-	Match             string                `json:"match,omitempty"`
 }
 
 // ReportMaterializationPolicy enables an authorization-scoped materialized
@@ -148,8 +84,6 @@ type ReportExportControlSchema struct {
 	AuditObject              string                          `json:"audit_object,omitempty"`
 	DownloadObject           string                          `json:"download_object,omitempty"`
 	RecordMapping            ReportExportRecordMappingSchema `json:"record_mapping"`
-	AllowedQueryKeys         []string                        `json:"allowed_query_keys,omitempty"`
-	AllowedTags              []string                        `json:"allowed_tags,omitempty"`
 	MaxRows                  int                             `json:"max_rows,omitempty"`
 	Reason                   string                          `json:"reason,omitempty"`
 	Config                   map[string]any                  `json:"config,omitempty"`

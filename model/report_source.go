@@ -24,22 +24,6 @@ type ReportSourceRecord struct {
 	UpdatedAt string         `json:"updated_at"`
 }
 
-// ReportDatasetSourceRow is an already authorized alias-addressed record
-// tuple. Nil records preserve left-join semantics.
-type ReportDatasetSourceRow map[string]*ReportSourceRecord
-
-type ReportDatasetReadRequest struct {
-	Report  ReportSchema      `json:"report"`
-	Plan    ReportDatasetPlan `json:"plan"`
-	Subject ReportSubject     `json:"subject"`
-}
-
-type ReportDatasetReadResult struct {
-	Rows    []ReportDatasetSourceRow        `json:"rows"`
-	Records map[string][]ReportSourceRecord `json:"records,omitempty"`
-	Objects map[string]ReportSourceObject   `json:"objects"`
-}
-
 type ReportObjectSQLExecutionRequest struct {
 	Report       ReportSchema        `json:"report"`
 	Plan         ReportObjectSQLPlan `json:"plan"`

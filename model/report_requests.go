@@ -1,11 +1,10 @@
 package reportmodel
 
 type ReportSummaryRequest struct {
-	ReportKey string            `json:"report_key"`
-	Mode      string            `json:"mode,omitempty"`
-	QueryKey  string            `json:"query_key,omitempty"`
-	Tags      []string          `json:"tags,omitempty"`
-	Page      ReportPageRequest `json:"page,omitempty"`
+	ReportKey  string            `json:"report_key"`
+	Mode       string            `json:"mode,omitempty"`
+	Parameters map[string]any    `json:"parameters,omitempty"`
+	Page       ReportPageRequest `json:"page,omitempty"`
 }
 
 type ReportObjectSQLRequest struct {

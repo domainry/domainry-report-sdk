@@ -54,6 +54,12 @@ type ReportSubject struct {
 	ActiveBusinessProfile *ReportBusinessProfile         `json:"active_business_profile,omitempty"`
 	BusinessClaims        map[string]ReportBusinessClaim `json:"business_claims,omitempty"`
 	AccessScopeHash       string                         `json:"access_scope_hash"`
+	// TrustedProcess marks an in-process authority resolved by the embedding
+	// host. It is deliberately excluded from JSON so remote callers cannot
+	// manufacture process authority. ProcessCapabilities must contain the exact
+	// actions and data permissions derived from the work item being executed.
+	TrustedProcess      bool     `json:"-"`
+	ProcessCapabilities []string `json:"-"`
 }
 
 func (s ReportSubject) Validate() error {
@@ -67,9 +73,53 @@ func (s ReportSubject) Validate() error {
 }
 
 func (s ReportSubject) HasPermission(permission string) bool {
-	return s.Principal.HasPermission(strings.TrimSpace(permission))
+	permission = strings.TrimSpace(permission)
+	if s.Principal.HasPermission(permission) {
+		return true
+	}
+	if !s.TrustedProcess || permission == "" {
+		return false
+	}
+	for _, capability := range s.ProcessCapabilities {
+		if strings.TrimSpace(capability) == permission {
+			return true
+		}
+	}
+	return false
 }
 
 func (s ReportSubject) HasAllPermissions(permissions []string) bool {
-	return s.Principal.HasAllPermissions(permissions)
+	if len(permissions) == 0 {
+		return false
+	}
+	for _, permission := range permissions {
+		if !s.HasPermission(permission) {
+			return false
+		}
+	}
+	return true
+}
+
+// WithExactProcessCapabilities adds owner-derived capabilities only to a
+// trusted in-process subject. Wildcard-shaped entries are ignored and an
+// externally resolved subject is returned unchanged.
+func (s ReportSubject) WithExactProcessCapabilities(capabilities ...string) ReportSubject {
+	if !s.TrustedProcess {
+		return s
+	}
+	result := s
+	result.ProcessCapabilities = append([]string(nil), s.ProcessCapabilities...)
+	seen := make(map[string]bool, len(result.ProcessCapabilities)+len(capabilities))
+	for _, capability := range result.ProcessCapabilities {
+		seen[strings.TrimSpace(capability)] = true
+	}
+	for _, capability := range capabilities {
+		capability = strings.TrimSpace(capability)
+		if capability == "" || strings.Contains(capability, "*") || seen[capability] {
+			continue
+		}
+		seen[capability] = true
+		result.ProcessCapabilities = append(result.ProcessCapabilities, capability)
+	}
+	return result
 }

@@ -16,13 +16,6 @@ type SubjectResolver interface {
 	ResolveReportSubject(context.Context, reportmodel.ReportAuthority) (reportmodel.ReportSubject, error)
 }
 
-// DatasetReader returns authorized source tuples from a safe pushdown or
-// authorized records grouped by alias. Report owns fallback joins, filters,
-// cardinality validation, aggregation, analyses, comparison and result shape.
-type DatasetReader interface {
-	ReadReportDataset(context.Context, reportmodel.ReportDatasetReadRequest) (reportmodel.ReportDatasetReadResult, error)
-}
-
 // ObjectSQLExecutor borrows host metadata authorization and SQL execution but
 // accepts only a Report-compiled plan, never authored SQL text chosen by a
 // request.
@@ -68,7 +61,6 @@ type ExportGateway interface {
 type ApplicationHost interface {
 	Host
 	ReportSubjects() SubjectResolver
-	ReportDatasets() DatasetReader
 	ReportObjectSQL() ObjectSQLExecutor
 	ReportSourceVersions() SourceVersionReader
 	ReportExecutionAudit() ExecutionAudit

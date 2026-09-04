@@ -1,15 +1,13 @@
 package reportmodel
 
-// ReportSummary is the canonical dataset result. The pre-publication Runtime
-// has no legacy per-object summary representation: every response is produced
-// from dimensions and measures declared by the Report Dataset.
+// ReportSummary is the canonical result produced by a validated object_sql_v1
+// Report definition.
 type ReportSummary struct {
 	Key             string                     `json:"key"`
 	Name            string                     `json:"name,omitempty"`
 	Rows            []ReportResultRow          `json:"rows"`
 	RowCount        int                        `json:"row_count"`
 	SourceRowCount  int                        `json:"source_row_count"`
-	Analyses        []ReportAnalysisResult     `json:"analyses,omitempty"`
 	ExecutionMode   string                     `json:"execution_mode"`
 	Snapshot        *ReportSnapshotFreshness   `json:"snapshot,omitempty"`
 	ResultSchema    []ReportResultColumnSchema `json:"result_schema,omitempty"`
@@ -40,12 +38,6 @@ type ReportSnapshotFreshness struct {
 	RefreshedAt    string            `json:"refreshed_at"`
 	LagSeconds     int64             `json:"lag_seconds"`
 	Stale          bool              `json:"stale"`
-}
-
-type ReportAnalysisResult struct {
-	Key  string            `json:"key"`
-	Type string            `json:"type"`
-	Rows []ReportResultRow `json:"rows"`
 }
 
 type ReportResultRow struct {
