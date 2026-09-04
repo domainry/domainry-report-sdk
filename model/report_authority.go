@@ -13,7 +13,6 @@ import (
 // only the original access token to the Report service.
 type ReportAuthority struct {
 	AccessToken        string         `json:"-"`
-	Surface            string         `json:"-"`
 	RequestID          string         `json:"-"`
 	BusinessProfileKey string         `json:"-"`
 	BusinessProfileID  string         `json:"-"`

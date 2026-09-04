@@ -148,7 +148,6 @@ type ReportExportControlSchema struct {
 	AuditObject              string                          `json:"audit_object,omitempty"`
 	DownloadObject           string                          `json:"download_object,omitempty"`
 	RecordMapping            ReportExportRecordMappingSchema `json:"record_mapping"`
-	ExportAction             string                          `json:"export_action,omitempty"`
 	AllowedQueryKeys         []string                        `json:"allowed_query_keys,omitempty"`
 	AllowedTags              []string                        `json:"allowed_tags,omitempty"`
 	MaxRows                  int                             `json:"max_rows,omitempty"`

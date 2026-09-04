@@ -4,7 +4,7 @@ import "testing"
 
 func TestDescriptorRequiresProtocolV3Capabilities(t *testing.T) {
 	valid := Descriptor{ProtocolVersion: ProtocolVersionV3, Mode: DeploymentModeModule, Capabilities: []string{
-		CapabilityDefinitionsSync, CapabilityQueriesExecute, CapabilitySnapshotsManage, CapabilityExportsManage, CapabilityHTTPSurface,
+		CapabilityDefinitionsSync, CapabilityQueriesExecute, CapabilitySnapshotsManage, CapabilityExportsManage, CapabilityHTTPAdapter,
 	}}
 	if err := valid.Validate(); err != nil {
 		t.Fatal(err)

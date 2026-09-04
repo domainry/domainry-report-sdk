@@ -20,7 +20,7 @@ const (
 	CapabilityQueriesExecute  = "queries.execute"
 	CapabilitySnapshotsManage = "snapshots.manage"
 	CapabilityExportsManage   = "exports.manage"
-	CapabilityHTTPSurface     = "http.surface"
+	CapabilityHTTPAdapter     = "http.adapter"
 )
 
 type DeploymentMode string
@@ -59,7 +59,7 @@ func (d Descriptor) Validate() error {
 		CapabilityQueriesExecute:  false,
 		CapabilitySnapshotsManage: false,
 		CapabilityExportsManage:   false,
-		CapabilityHTTPSurface:     false,
+		CapabilityHTTPAdapter:     false,
 	}
 	for _, capability := range d.Capabilities {
 		if _, ok := required[strings.TrimSpace(capability)]; ok {
@@ -136,7 +136,7 @@ type ApplicationBinding interface {
 // ApplicationHostBinder completes an embedded binding after the host has
 // assembled its record, authorization and audit capabilities. Report opens
 // persistence first so metadata restoration can run before Runtime business
-// services exist; HTTP surfaces must not be published until this bind succeeds.
+// services exist; HTTP adapters must not be published until this bind succeeds.
 type ApplicationHostBinder interface {
 	BindApplicationHost(modulehost.ApplicationHost) error
 }
