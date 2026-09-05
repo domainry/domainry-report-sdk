@@ -40,6 +40,29 @@ ORDER BY paid_amount DESC LIMIT 100`)
 	}
 }
 
+func TestObjectSQLResultSchemaDiagnosticsDistinguishAliasKindAndType(t *testing.T) {
+	for _, test := range []struct {
+		name, sql, key, resultType, kind, field, actual, allowed, replacement string
+	}{
+		{name: "alias", sql: `SELECT s.id AS actual FROM sale s`, key: "expected", resultType: "text", kind: "dimension", field: "key", actual: "actual", allowed: "expected"},
+		{name: "kind", sql: `SELECT s.amount AS estimated_amount FROM sale s`, key: "estimated_amount", resultType: "currency", kind: "metric", field: "kind", actual: "metric", allowed: "dimension,measure", replacement: "measure"},
+		{name: "type", sql: `SELECT s.id AS id FROM sale s`, key: "id", resultType: "phone", kind: "dimension", field: "type", actual: "phone", allowed: "text,integer,number,decimal,boolean,date,datetime,currency"},
+	} {
+		t.Run(test.name, func(t *testing.T) {
+			schema := reportObjectSQLFixture(test.sql)
+			schema.ResultSchema = []reportmodel.ReportResultColumnSchema{{Key: test.key, Type: test.resultType, Kind: test.kind}}
+			_, err := CompileReportObjectSQL(schema, reportObjectSQLObjects())
+			planErr, ok := err.(*reportmodel.ReportObjectSQLPlanError)
+			if !ok || planErr.Code != "backend.report.object_sql_result_schema_invalid" || planErr.Params["field"] != test.field ||
+				planErr.Params["invalid_field"] != test.field || planErr.Params["result_key"] != test.key ||
+				planErr.Params["actual"] != test.actual || planErr.Params["allowed_values"] != test.allowed ||
+				planErr.Params["replacement_value"] != test.replacement || !strings.HasSuffix(planErr.Path, "."+test.field) {
+				t.Fatalf("diagnostic=%+v err=%v", planErr, err)
+			}
+		})
+	}
+}
+
 func TestObjectSQLParserRejectsForbiddenCorpus(t *testing.T) {
 	base := reportObjectSQLFixture("")
 	cases := map[string]string{

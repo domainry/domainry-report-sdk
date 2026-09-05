@@ -217,15 +217,39 @@ func (c *objectSQLCompiler) compileSelect(statement *sqlparser.Select, plan *rep
 			alias = strings.TrimSpace(aliased.As.String())
 		}
 		result := c.schema.ResultSchema[index]
-		if !ok || alias == "" || alias != strings.TrimSpace(result.Key) || c.projections[alias].Kind != "" || !objectSQLResultType(result.Type) || result.Kind != "dimension" && result.Kind != "measure" {
-			return objectSQLPlanError("backend.report.object_sql_result_schema_invalid", fmt.Sprintf("object_sql_v1.result_schema[%d]", index), map[string]string{"alias": alias})
+		resultKey := strings.TrimSpace(result.Key)
+		if !ok || alias == "" || alias != resultKey {
+			return objectSQLPlanError("backend.report.object_sql_result_schema_invalid", fmt.Sprintf("object_sql_v1.result_schema[%d].key", index), map[string]string{
+				"field": "key", "invalid_field": "key", "result_key": resultKey, "actual": alias, "allowed_values": resultKey,
+			})
+		}
+		if c.projections[alias].Kind != "" {
+			return objectSQLPlanError("backend.report.object_sql_result_schema_invalid", fmt.Sprintf("object_sql_v1.result_schema[%d].key", index), map[string]string{
+				"field": "key", "invalid_field": "key", "result_key": resultKey, "actual": alias, "reason": "duplicate_result_alias",
+			})
+		}
+		if !objectSQLResultType(result.Type) {
+			return objectSQLPlanError("backend.report.object_sql_result_schema_invalid", fmt.Sprintf("object_sql_v1.result_schema[%d].type", index), map[string]string{
+				"field": "type", "invalid_field": "type", "result_key": resultKey, "actual": result.Type, "allowed_values": strings.Join(objectSQLResultTypes(), ","),
+			})
+		}
+		if result.Kind != "dimension" && result.Kind != "measure" {
+			params := map[string]string{
+				"field": "kind", "invalid_field": "kind", "result_key": resultKey, "actual": result.Kind, "allowed_values": "dimension,measure",
+			}
+			if result.Kind == "metric" {
+				params["replacement_value"] = "measure"
+			}
+			return objectSQLPlanError("backend.report.object_sql_result_schema_invalid", fmt.Sprintf("object_sql_v1.result_schema[%d].kind", index), params)
 		}
 		expression, err := c.compileExpression(aliased.Expr, false)
 		if err != nil {
 			return err
 		}
 		if !objectSQLResultCompatible(result, expression) {
-			return objectSQLPlanError("backend.report.object_sql_result_schema_invalid", fmt.Sprintf("object_sql_v1.result_schema[%d]", index), map[string]string{"declared": result.Type, "actual": expression.Type})
+			return objectSQLPlanError("backend.report.object_sql_result_schema_invalid", fmt.Sprintf("object_sql_v1.result_schema[%d].type", index), map[string]string{
+				"field": "type", "invalid_field": "type", "result_key": resultKey, "declared": result.Type, "actual": expression.Type, "reason": "expression_type_incompatible",
+			})
 		}
 		if result.Type == "decimal" && expression.Type == "decimal" && expression.Precision > 0 {
 			plan.ResultSchema[index].Precision = expression.Precision
@@ -383,3 +407,6 @@ func objectSQLValueType(value string) bool {
 	return false
 }
 func objectSQLResultType(value string) bool { return objectSQLValueType(value) || value == "currency" }
+func objectSQLResultTypes() []string {
+	return []string{"text", "integer", "number", "decimal", "boolean", "date", "datetime", "currency"}
+}
