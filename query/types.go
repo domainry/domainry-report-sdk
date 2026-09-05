@@ -4,10 +4,13 @@
 package query
 
 type Field struct {
-	Key       string
-	Type      string
-	Precision int
-	Scale     int32
+	Key                 string
+	Type                string
+	Precision           int
+	Scale               int32
+	Unique              bool
+	RelationTarget      string
+	RelationCardinality string
 }
 
 type Object struct {

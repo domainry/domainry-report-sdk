@@ -6,10 +6,13 @@ import "time"
 // needs to compile calculations and Object SQL. Host authorization must omit
 // disabled or unreadable fields before returning these values.
 type ReportSourceField struct {
-	Key       string `json:"key"`
-	Type      string `json:"type"`
-	Precision int    `json:"precision,omitempty"`
-	Scale     int32  `json:"scale,omitempty"`
+	Key                 string `json:"key"`
+	Type                string `json:"type"`
+	Precision           int    `json:"precision,omitempty"`
+	Scale               int32  `json:"scale,omitempty"`
+	Unique              bool   `json:"unique,omitempty"`
+	RelationTarget      string `json:"relation_target,omitempty"`
+	RelationCardinality string `json:"relation_cardinality,omitempty"`
 }
 
 type ReportSourceObject struct {

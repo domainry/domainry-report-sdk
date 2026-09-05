@@ -3,9 +3,98 @@ package objectsql
 import (
 	"fmt"
 	"sort"
+	"strings"
 
 	reportmodel "github.com/domainry/domainry-report-sdk/model"
+	reportengine "github.com/domainry/domainry-report-sdk/query"
 )
+
+func (c *objectSQLCompiler) inferJoinCardinality(expression reportmodel.ReportObjectSQLExpression, rightAlias string) (string, []string) {
+	candidates := c.joinRelationCandidates(rightAlias)
+	best := ""
+	walkObjectSQLExpression(expression, func(current reportmodel.ReportObjectSQLExpression) {
+		if current.Kind != "comparison" || current.Operator != "=" || len(current.Arguments) != 2 {
+			return
+		}
+		left, right := current.Arguments[0], current.Arguments[1]
+		if left.Kind != "field" || right.Kind != "field" {
+			return
+		}
+		if left.Alias == rightAlias {
+			left, right = right, left
+		}
+		if right.Alias != rightAlias || c.aliasOrder[left.Alias] >= c.aliasOrder[rightAlias] {
+			return
+		}
+		leftObject, rightObject := c.aliases[left.Alias], c.aliases[right.Alias]
+		leftField, leftFound := objectSQLField(leftObject, left.FieldKey)
+		rightField, rightFound := objectSQLField(rightObject, right.FieldKey)
+		if !leftFound || !rightFound || !objectSQLJoinEqualityBacked(leftObject, leftField, rightObject, rightField) {
+			return
+		}
+		inferred := "one_to_many"
+		switch {
+		case objectSQLFieldUnique(leftField) && objectSQLFieldUnique(rightField):
+			inferred = "one_to_one"
+		case objectSQLFieldUnique(rightField):
+			inferred = "many_to_one"
+		}
+		if objectSQLCardinalityRank(inferred) > objectSQLCardinalityRank(best) {
+			best = inferred
+		}
+	})
+	return best, candidates
+}
+
+func objectSQLJoinEqualityBacked(leftObject reportengine.Object, left reportengine.Field, rightObject reportengine.Object, right reportengine.Field) bool {
+	if objectSQLFieldUnique(left) || objectSQLFieldUnique(right) {
+		return true
+	}
+	return objectSQLRelationTargets(left, rightObject.Key, right.Key) || objectSQLRelationTargets(right, leftObject.Key, left.Key)
+}
+
+func objectSQLRelationTargets(field reportengine.Field, objectKey, targetField string) bool {
+	return strings.TrimSpace(field.Type) == "relation" && strings.TrimSpace(field.RelationTarget) == strings.TrimSpace(objectKey) && targetField == "id"
+}
+
+func objectSQLFieldUnique(field reportengine.Field) bool {
+	return field.Unique || strings.TrimSpace(field.RelationCardinality) == "one_to_one"
+}
+
+func objectSQLCardinalityRank(value string) int {
+	switch value {
+	case "one_to_one":
+		return 3
+	case "many_to_one":
+		return 2
+	case "one_to_many":
+		return 1
+	default:
+		return 0
+	}
+}
+
+func (c *objectSQLCompiler) joinRelationCandidates(rightAlias string) []string {
+	result := []string{}
+	rightObject := c.aliases[rightAlias]
+	for alias, object := range c.aliases {
+		if alias == rightAlias || c.aliasOrder[alias] >= c.aliasOrder[rightAlias] {
+			continue
+		}
+		for _, field := range object.Fields {
+			if objectSQLRelationTargets(field, rightObject.Key, "id") {
+				result = append(result, alias+"."+field.Key+" = "+rightAlias+".id")
+			}
+		}
+		for _, field := range rightObject.Fields {
+			if objectSQLRelationTargets(field, object.Key, "id") {
+				result = append(result, rightAlias+"."+field.Key+" = "+alias+".id")
+			}
+		}
+	}
+	sort.Strings(result)
+	return result
+}
 
 func (c *objectSQLCompiler) validateAmplification(plan reportmodel.ReportObjectSQLPlan) error {
 	for projectionIndex, projection := range plan.Projections {

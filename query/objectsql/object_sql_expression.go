@@ -333,7 +333,7 @@ func objectSQLField(object reportengine.Object, key string) (reportengine.Field,
 		return reportengine.Field{Key: key, Type: "text"}, true
 	}
 	if key == "id" {
-		return reportengine.Field{Key: key, Type: "text"}, true
+		return reportengine.Field{Key: key, Type: "text", Unique: true}, true
 	}
 	if key == "created_at" || key == "updated_at" {
 		return reportengine.Field{Key: key, Type: "datetime"}, true

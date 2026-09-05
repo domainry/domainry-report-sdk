@@ -42,11 +42,11 @@ ORDER BY paid_amount DESC LIMIT 100`)
 
 func TestObjectSQLResultSchemaDiagnosticsDistinguishAliasKindAndType(t *testing.T) {
 	for _, test := range []struct {
-		name, sql, key, resultType, kind, field, actual, allowed, replacement string
+		name, sql, key, resultType, kind, field, actual, allowed, replacement, pathSuffix string
 	}{
-		{name: "alias", sql: `SELECT s.id AS actual FROM sale s`, key: "expected", resultType: "text", kind: "dimension", field: "key", actual: "actual", allowed: "expected"},
-		{name: "kind", sql: `SELECT s.amount AS estimated_amount FROM sale s`, key: "estimated_amount", resultType: "currency", kind: "metric", field: "kind", actual: "metric", allowed: "dimension,measure", replacement: "measure"},
-		{name: "type", sql: `SELECT s.id AS id FROM sale s`, key: "id", resultType: "phone", kind: "dimension", field: "type", actual: "phone", allowed: "text,integer,number,decimal,boolean,date,datetime,currency"},
+		{name: "alias", sql: `SELECT s.id AS actual FROM sale s`, key: "expected", resultType: "text", kind: "dimension", field: "key", actual: "expected", pathSuffix: "result_schema"},
+		{name: "kind", sql: `SELECT s.amount AS estimated_amount FROM sale s`, key: "estimated_amount", resultType: "currency", kind: "metric", field: "kind", actual: "metric", allowed: "dimension,measure", replacement: "measure", pathSuffix: ".kind"},
+		{name: "type", sql: `SELECT s.id AS id FROM sale s`, key: "id", resultType: "phone", kind: "dimension", field: "type", actual: "phone", allowed: "text,integer,number,decimal,boolean,date,datetime,currency", pathSuffix: ".type"},
 	} {
 		t.Run(test.name, func(t *testing.T) {
 			schema := reportObjectSQLFixture(test.sql)
@@ -56,7 +56,7 @@ func TestObjectSQLResultSchemaDiagnosticsDistinguishAliasKindAndType(t *testing.
 			if !ok || planErr.Code != "backend.report.object_sql_result_schema_invalid" || planErr.Params["field"] != test.field ||
 				planErr.Params["invalid_field"] != test.field || planErr.Params["result_key"] != test.key ||
 				planErr.Params["actual"] != test.actual || planErr.Params["allowed_values"] != test.allowed ||
-				planErr.Params["replacement_value"] != test.replacement || !strings.HasSuffix(planErr.Path, "."+test.field) {
+				planErr.Params["replacement_value"] != test.replacement || !strings.HasSuffix(planErr.Path, test.pathSuffix) {
 				t.Fatalf("diagnostic=%+v err=%v", planErr, err)
 			}
 		})
@@ -161,8 +161,96 @@ func TestObjectSQLParserRejectsJoinAmplificationAndAcceptsQualifiedDuplicateFiel
 	}
 	unsafe.SQL = `SELECT SUM(s.amount) AS total FROM sale s LEFT JOIN payment p ON p.sale_id = s.id`
 	unsafe.JoinCardinalities = []reportmodel.ReportObjectSQLCardinality{{Alias: "p", Cardinality: "many_to_one"}}
-	if _, err := CompileReportObjectSQL(unsafe, reportObjectSQLObjects()); err != nil {
+	if _, err := CompileReportObjectSQL(unsafe, reportObjectSQLObjects()); objectSQLValidationCode(err) != "backend.report.join_cardinality_mismatch" {
+		t.Fatalf("forged cardinality err=%v", err)
+	}
+}
+
+func TestObjectSQLCompilerDerivesAuthoringContractFromSQL(t *testing.T) {
+	schema := reportmodel.ReportObjectSQLSchema{
+		SQL: `SELECT s.store_id AS store_id, COUNT(DISTINCT p.id) AS payment_count
+FROM sale s LEFT JOIN payment p ON p.sale_id = s.id
+GROUP BY s.store_id`,
+	}
+	plan, err := CompileReportObjectSQL(schema, reportObjectSQLObjects())
+	if err != nil {
 		t.Fatal(err)
+	}
+	if len(plan.Sources) != 2 || plan.Sources[0].ObjectKey != "sale" || plan.Sources[1].ObjectKey != "payment" || plan.Sources[1].Cardinality != "one_to_many" {
+		t.Fatalf("sources=%#v", plan.Sources)
+	}
+	if len(plan.ResultSchema) != 2 || plan.ResultSchema[0].Key != "store_id" || plan.ResultSchema[0].Type != "text" || plan.ResultSchema[0].Kind != "dimension" ||
+		plan.ResultSchema[1].Key != "payment_count" || plan.ResultSchema[1].Type != "integer" || plan.ResultSchema[1].Kind != "measure" {
+		t.Fatalf("result_schema=%#v", plan.ResultSchema)
+	}
+	canonical, canonicalPlan, err := CanonicalReportObjectSQL(schema, reportObjectSQLObjects())
+	if err != nil {
+		t.Fatal(err)
+	}
+	if strings.Join(canonical.SourceObjects, ",") != "sale,payment" || len(canonical.ResultSchema) != 2 || len(canonical.JoinCardinalities) != 0 || len(canonicalPlan.Sources) != 2 {
+		t.Fatalf("canonical=%#v plan=%#v", canonical, canonicalPlan)
+	}
+}
+
+func TestObjectSQLCompilerInfersReverseAndOneToOneCardinality(t *testing.T) {
+	objects := reportObjectSQLObjects()
+	objects["sale_profile"] = reportengine.Object{Key: "sale_profile", Fields: []reportengine.Field{{Key: "sale_id", Type: "relation", RelationTarget: "sale", RelationCardinality: "one_to_one"}}}
+	for _, test := range []struct {
+		name, sql, cardinality string
+	}{
+		{name: "many to one", sql: `SELECT s.id AS sale_id FROM payment p INNER JOIN sale s ON p.sale_id = s.id`, cardinality: "many_to_one"},
+		{name: "one to one", sql: `SELECT s.id AS sale_id FROM sale s LEFT JOIN sale_profile sp ON sp.sale_id = s.id`, cardinality: "one_to_one"},
+	} {
+		t.Run(test.name, func(t *testing.T) {
+			plan, err := CompileReportObjectSQL(reportmodel.ReportObjectSQLSchema{SQL: test.sql}, objects)
+			if err != nil {
+				t.Fatal(err)
+			}
+			if len(plan.Sources) != 2 || plan.Sources[1].Cardinality != test.cardinality {
+				t.Fatalf("sources=%#v", plan.Sources)
+			}
+		})
+	}
+}
+
+func TestObjectSQLCompilerRejectsUnprovableJoinAndSuggestsRelations(t *testing.T) {
+	objects := reportObjectSQLObjects()
+	objects["payment"] = reportengine.Object{Key: "payment", Fields: []reportengine.Field{
+		{Key: "sale_id", Type: "relation", RelationTarget: "sale", RelationCardinality: "many_to_one"},
+		{Key: "kind", Type: "text"},
+	}}
+	schema := reportmodel.ReportObjectSQLSchema{SQL: `SELECT s.id AS sale_id FROM sale s LEFT JOIN payment p ON p.kind = s.status`}
+	_, err := CompileReportObjectSQL(schema, objects)
+	planErr, ok := err.(*reportmodel.ReportObjectSQLPlanError)
+	if !ok || planErr.Code != "backend.report.join_cardinality_unprovable" || planErr.Params["candidate_relation_fields"] != "p.sale_id = s.id" {
+		t.Fatalf("err=%+v", err)
+	}
+}
+
+func TestObjectSQLResultOverridesBindByAliasInsteadOfArrayPosition(t *testing.T) {
+	schema := reportmodel.ReportObjectSQLSchema{
+		SQL: `SELECT s.id AS sale_id, s.amount AS amount FROM sale s`,
+		ResultSchema: []reportmodel.ReportResultColumnSchema{
+			{Key: "amount", Kind: "measure"},
+			{Key: "sale_id", Kind: "dimension"},
+		},
+	}
+	plan, err := CompileReportObjectSQL(schema, reportObjectSQLObjects())
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(plan.ResultSchema) != 2 || plan.ResultSchema[0].Key != "sale_id" || plan.ResultSchema[0].Type != "text" || plan.ResultSchema[1].Key != "amount" || plan.ResultSchema[1].Type != "currency" || plan.ResultSchema[1].Kind != "measure" {
+		t.Fatalf("result_schema=%#v", plan.ResultSchema)
+	}
+}
+
+func TestDiscoverReportObjectSQLSources(t *testing.T) {
+	sources, err := DiscoverReportObjectSQLSources(`SELECT s.id AS sale_id FROM sale s LEFT JOIN payment p ON p.sale_id = s.id`)
+	if err != nil || strings.Join(sources, ",") != "sale,payment" {
+		t.Fatalf("sources=%v err=%v", sources, err)
+	}
+	if _, err := DiscoverReportObjectSQLSources(`SELECT x.id AS id FROM (SELECT id FROM sale) x`); err == nil {
+		t.Fatal("derived source accepted")
 	}
 }
 
@@ -238,7 +326,7 @@ func TestObjectSQLParserEnforcesComplexityLimits(t *testing.T) {
 	}
 
 	objects := map[string]reportengine.Object{}
-	joins, sources, cardinalities := "", []string{}, []reportmodel.ReportObjectSQLCardinality{}
+	joins, sources := "", []string{}
 	for index := range reportObjectSQLMaximumJoins + 2 {
 		key := fmt.Sprintf("object_%d", index)
 		alias := fmt.Sprintf("o%d", index)
@@ -246,10 +334,9 @@ func TestObjectSQLParserEnforcesComplexityLimits(t *testing.T) {
 		sources = append(sources, key)
 		if index > 0 {
 			joins += fmt.Sprintf(" INNER JOIN %s %s ON %s.parent_id = o0.id", key, alias, alias)
-			cardinalities = append(cardinalities, reportmodel.ReportObjectSQLCardinality{Alias: alias, Cardinality: "many_to_one"})
 		}
 	}
-	joinSchema := reportmodel.ReportObjectSQLSchema{SQL: `SELECT o0.id AS id FROM object_0 o0` + joins, SourceObjects: sources, JoinCardinalities: cardinalities, ResultSchema: []reportmodel.ReportResultColumnSchema{{Key: "id", Type: "text", Kind: "dimension"}}}
+	joinSchema := reportmodel.ReportObjectSQLSchema{SQL: `SELECT o0.id AS id FROM object_0 o0` + joins, SourceObjects: sources, ResultSchema: []reportmodel.ReportResultColumnSchema{{Key: "id", Type: "text", Kind: "dimension"}}}
 	if _, err := CompileReportObjectSQL(joinSchema, objects); objectSQLValidationCode(err) != "backend.report.object_sql_complexity_exceeded" {
 		t.Fatalf("join err=%v", err)
 	}
@@ -273,7 +360,7 @@ func reportObjectSQLFixture(sql string) reportmodel.ReportObjectSQLSchema {
 func reportObjectSQLObjects() map[string]reportengine.Object {
 	return map[string]reportengine.Object{
 		"sale":    {Key: "sale", Fields: []reportengine.Field{{Key: "store_id", Type: "text"}, {Key: "status", Type: "text"}, {Key: "amount", Type: "currency", Precision: 19, Scale: 2}, {Key: "quantity", Type: "integer"}}},
-		"payment": {Key: "payment", Fields: []reportengine.Field{{Key: "sale_id", Type: "text"}, {Key: "kind", Type: "text"}, {Key: "amount", Type: "currency", Precision: 19, Scale: 2}}},
+		"payment": {Key: "payment", Fields: []reportengine.Field{{Key: "sale_id", Type: "relation", RelationTarget: "sale", RelationCardinality: "many_to_one"}, {Key: "kind", Type: "text"}, {Key: "amount", Type: "currency", Precision: 19, Scale: 2}}},
 	}
 }
 

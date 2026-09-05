@@ -5,15 +5,26 @@ package reportmodel
 // keys. Physical storage, workspace predicates, and Runtime RLS are injected
 // after parsing and semantic binding.
 type ReportObjectSQLSchema struct {
-	SQL                 string                       `json:"sql"`
-	SourceObjects       []string                     `json:"source_objects"`
-	Parameters          []ReportObjectSQLParameter   `json:"parameters,omitempty"`
-	ResultSchema        []ReportResultColumnSchema   `json:"result_schema"`
+	SQL string `json:"sql"`
+	// SourceObjects and ResultSchema are compiler-derived publication fields.
+	// Legacy definitions may still declare them; the compiler verifies those
+	// assertions against the SQL-derived contract instead of trusting them.
+	SourceObjects []string                   `json:"source_objects,omitempty"`
+	Parameters    []ReportObjectSQLParameter `json:"parameters,omitempty"`
+	ResultSchema  []ReportResultColumnSchema `json:"result_schema,omitempty"`
+	// JoinCardinalities is a deprecated compatibility assertion. New authors
+	// omit it; cardinality is proven from relation and uniqueness metadata.
 	JoinCardinalities   []ReportObjectSQLCardinality `json:"join_cardinalities,omitempty"`
 	TimeoutMilliseconds int                          `json:"timeout_milliseconds,omitempty"`
 	TimeZone            string                       `json:"time_zone,omitempty"`
 }
 
+// ReportObjectSQLObjectKeys returns only the legacy/canonical publication
+// assertion and never parses SQL.
+//
+// Deprecated: authoring and pre-canonical consumers must use
+// objectsql.DiscoverReportObjectSQLSources. This helper remains for external
+// compatibility with already-published schemas.
 func ReportObjectSQLObjectKeys(schema *ReportObjectSQLSchema) []string {
 	if schema == nil {
 		return nil
@@ -30,8 +41,8 @@ type ReportObjectSQLParameter struct {
 
 type ReportResultColumnSchema struct {
 	Key       string `json:"key"`
-	Type      string `json:"type"`
-	Kind      string `json:"kind"`
+	Type      string `json:"type,omitempty"`
+	Kind      string `json:"kind,omitempty"`
 	Precision int    `json:"precision,omitempty"`
 	Scale     int    `json:"scale,omitempty"`
 }
