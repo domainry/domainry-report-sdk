@@ -228,6 +228,9 @@ func (c *objectSQLCompiler) compileFunction(value *sqlparser.FuncExpr) (reportmo
 	if name == "date_bucket" {
 		return c.compileDateBucket(value)
 	}
+	if name == "contains" {
+		return c.compileContains(value)
+	}
 	allowedArity := map[string][2]int{"coalesce": {2, 8}, "nullif": {2, 2}, "round": {1, 2}, "floor": {1, 1}}
 	arity, ok := allowedArity[name]
 	if !ok || len(value.Exprs) < arity[0] || len(value.Exprs) > arity[1] {
@@ -264,6 +267,28 @@ func (c *objectSQLCompiler) compileFunction(value *sqlparser.FuncExpr) (reportmo
 		result.Type, result.Precision, result.Scale = result.Arguments[0].Type, result.Arguments[0].Precision, result.Arguments[0].Scale
 	}
 	return result, nil
+}
+
+// CONTAINS accepts a published text field and one declared text parameter.
+// The parameter is a literal substring; SQL wildcard syntax is never authored.
+func (c *objectSQLCompiler) compileContains(value *sqlparser.FuncExpr) (reportmodel.ReportObjectSQLExpression, error) {
+	if len(value.Exprs) != 2 {
+		return reportmodel.ReportObjectSQLExpression{}, objectSQLPlanError("backend.report.object_sql_function_forbidden", "object_sql_v1.sql", map[string]string{"function": "contains"})
+	}
+	field, err := c.compileExpression(value.Exprs[0], false)
+	if err != nil {
+		return reportmodel.ReportObjectSQLExpression{}, err
+	}
+	parameter, err := c.compileExpression(value.Exprs[1], false)
+	if err != nil {
+		return reportmodel.ReportObjectSQLExpression{}, err
+	}
+	metadata, exists := objectSQLField(c.aliases[field.Alias], field.FieldKey)
+	textual := exists && (metadata.Type == "text" || metadata.Type == "long_text" || metadata.Type == "email" || metadata.Type == "phone" || metadata.Type == "url")
+	if field.Kind != "field" || !textual || parameter.Kind != "parameter" || parameter.Type != "text" {
+		return reportmodel.ReportObjectSQLExpression{}, objectSQLPlanError("backend.report.object_sql_type_invalid", "object_sql_v1.sql", map[string]string{"function": "contains", "expected": "text field and declared text parameter"})
+	}
+	return reportmodel.ReportObjectSQLExpression{Kind: "function", Name: "contains", Type: "boolean", Arguments: []reportmodel.ReportObjectSQLExpression{field, parameter}}, nil
 }
 
 func (c *objectSQLCompiler) compileDateBucket(value *sqlparser.FuncExpr) (reportmodel.ReportObjectSQLExpression, error) {
