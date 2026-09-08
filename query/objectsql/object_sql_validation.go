@@ -11,8 +11,12 @@ import (
 )
 
 const (
-	reportObjectSQLMaximumLength  = 32 << 10
-	reportObjectSQLMaximumNodes   = 1000
+	reportObjectSQLMaximumLength = 32 << 10
+	// A payroll statement can legitimately exceed 1,000 parser nodes while
+	// staying within the fixed 64-column, eight-join and 32 KiB SQL bounds.
+	// Keep one bounded backend calculation instead of forcing callers to split
+	// financial formulas across independently observed reports.
+	reportObjectSQLMaximumNodes   = 2000
 	reportObjectSQLMaximumJoins   = 8
 	reportObjectSQLMaximumColumns = 64
 	reportObjectSQLMaximumLimit   = 10000

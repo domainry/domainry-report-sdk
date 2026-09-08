@@ -353,6 +353,32 @@ func TestObjectSQLParserEnforcesComplexityLimits(t *testing.T) {
 	}
 }
 
+func TestObjectSQLParserAdmitsBoundedWideFinancialStatement(t *testing.T) {
+	// Repeated period formulas are necessary because a SELECT cannot reuse a
+	// sibling result alias. This remains a single bounded aggregate query.
+	columns := make([]string, 40)
+	results := make([]reportmodel.ReportResultColumnSchema, len(columns))
+	for i := range columns {
+		key := fmt.Sprintf("period_amount_%d", i)
+		columns[i] = "SUM(CASE WHEN s.quantity >= 10 THEN s.quantity * 2 WHEN s.quantity >= 5 THEN s.quantity ELSE 0 END) AS " + key
+		results[i] = reportmodel.ReportResultColumnSchema{Key: key, Type: "integer", Kind: "measure"}
+	}
+	schema := reportObjectSQLFixture("SELECT " + strings.Join(columns, ", ") + " FROM sale s LIMIT 1")
+	schema.ResultSchema = results
+	plan, err := CompileReportObjectSQL(schema, reportObjectSQLObjects())
+	if err != nil {
+		t.Fatal(err)
+	}
+	if plan.NodeCount <= 1000 || plan.NodeCount > 2000 || len(plan.Projections) != len(columns) {
+		t.Fatalf("wide statement was not admitted with bounded complexity: nodes=%d", plan.NodeCount)
+	}
+	// The increased allowance must still reject a hostile predicate expansion.
+	schema.SQL = "SELECT " + strings.Join(columns, ", ") + " FROM sale s WHERE " + strings.TrimSuffix(strings.Repeat("s.quantity = 1 OR ", 200), " OR ") + " LIMIT 1"
+	if _, err := CompileReportObjectSQL(schema, reportObjectSQLObjects()); objectSQLValidationCode(err) != "backend.report.object_sql_complexity_exceeded" {
+		t.Fatalf("oversized financial statement err=%v", err)
+	}
+}
+
 func reportObjectSQLFixture(sql string) reportmodel.ReportObjectSQLSchema {
 	return reportmodel.ReportObjectSQLSchema{SQL: sql, SourceObjects: []string{"sale"}, ResultSchema: []reportmodel.ReportResultColumnSchema{{Key: "id", Type: "text", Kind: "dimension"}}}
 }
