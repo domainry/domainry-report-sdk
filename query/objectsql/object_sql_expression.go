@@ -265,6 +265,12 @@ func (c *objectSQLCompiler) compileFunction(value *sqlparser.FuncExpr) (reportmo
 			return reportmodel.ReportObjectSQLExpression{}, objectSQLPlanError("backend.report.object_sql_type_invalid", "object_sql_v1.sql", nil)
 		}
 		result.Type, result.Precision, result.Scale = result.Arguments[0].Type, result.Arguments[0].Precision, result.Arguments[0].Scale
+		if name == "floor" && result.Type == "decimal" && result.Precision > 0 {
+			// FLOOR consumes the stored decimal scale and returns whole units.
+			// Keeping an unscaled result prevents the next integer-yen sum from
+			// treating the percentage's minor units as payable money.
+			result.Type, result.Precision, result.Scale = "integer", 0, 0
+		}
 	}
 	return result, nil
 }
@@ -424,6 +430,14 @@ func objectSQLArithmeticType(operator string, left, right reportmodel.ReportObje
 		}
 		return "currency", max(left.Precision, right.Precision), left.Scale, true
 	}
+	if operator == "*" {
+		if left.Type == "integer" && right.Type == "decimal" && right.Precision > 0 {
+			return "decimal", min(38, right.Precision+19), right.Scale, true
+		}
+		if right.Type == "integer" && left.Type == "decimal" && left.Precision > 0 {
+			return "decimal", min(38, left.Precision+19), left.Scale, true
+		}
+	}
 	if left.Type == "number" || right.Type == "number" {
 		return "number", 0, 0, true
 	}
@@ -458,7 +472,7 @@ func objectSQLCoerceCurrencyPair(left, right *reportmodel.ReportObjectSQLExpress
 }
 
 func objectSQLCoerceCaseBranch(target reportmodel.ReportObjectSQLExpression, branch *reportmodel.ReportObjectSQLExpression) {
-	if target.Type == "currency" && branch.Kind == "literal" && branch.Value == "0" {
-		branch.Type, branch.Precision, branch.Scale = "currency", target.Precision, target.Scale
+	if (target.Type == "currency" || target.Type == "decimal" && target.Precision > 0) && branch.Kind == "literal" && branch.Value == "0" {
+		branch.Type, branch.Precision, branch.Scale = target.Type, target.Precision, target.Scale
 	}
 }
