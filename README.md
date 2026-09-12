@@ -16,3 +16,19 @@ Protocol v3 requires `definitions.sync`, `queries.execute`, `snapshots.manage`, 
 Report owns snapshot DDL and DML behind `persistence` contracts while embedded deployments participate in the host database, transaction boundary, and single `_schema_migrations` ledger. Hosts must resolve trusted identity and authorization facts and provide only authorized source projections; Report owns Object SQL rules, pagination, materialization orchestration, and its stable response contract.
 
 Run `go test ./...` before publishing an immutable SDK version.
+
+`ApplicationBinding.Queries()` may additionally implement `GovernedQueries`.
+Its catalog exposes only currently executable report keys, typed parameters,
+authorized result schemas and the published row limit. It does not expose SQL
+or persistence repositories. `Query` executes a realtime published Object SQL
+report and returns its page plus an owner-signed source. `Complete` means that
+the response contains the whole published report within its row limit, not
+every underlying record; a final continuation page alone is incomplete.
+
+Persist the original request and the entire `ReportQueryResult`. Before using
+it again, call `AuthorizeQueryResult` with the current authority. The owner
+checks current report, field and data access and binds all returned content to
+the original request, caller, definition and source revision. Changed sources
+invalidate old results conservatively; consumers must query again. This check
+does not execute a report or grant permission. Older `Queries` implementations
+remain compatible and do not implicitly advertise this optional extension.
