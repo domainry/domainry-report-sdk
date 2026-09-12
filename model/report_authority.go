@@ -53,7 +53,10 @@ type ReportSubject struct {
 	BusinessProfiles      []ReportBusinessProfile        `json:"business_profiles,omitempty"`
 	ActiveBusinessProfile *ReportBusinessProfile         `json:"active_business_profile,omitempty"`
 	BusinessClaims        map[string]ReportBusinessClaim `json:"business_claims,omitempty"`
-	AccessScopeHash       string                         `json:"access_scope_hash"`
+	// BusinessAuthorizationRevision is host-owned evidence, separate from the
+	// embedded Identity revision. Preserve it across trusted Subject round trips.
+	BusinessAuthorizationRevision string `json:"business_authorization_revision,omitempty"`
+	AccessScopeHash               string `json:"access_scope_hash"`
 	// TrustedProcess marks an in-process authority resolved by the embedding
 	// host. It is deliberately excluded from JSON so remote callers cannot
 	// manufacture process authority. ProcessCapabilities must contain the exact
