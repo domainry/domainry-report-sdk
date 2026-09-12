@@ -4,15 +4,28 @@ package reportmodel
 // A key identifies the entire governed dataset, never one search/result page.
 // Unit is source-declared; an empty unit is explicitly unknown to consumers.
 type AnalysisDataset struct {
-	Key     string           `json:"key"`
-	Name    string           `json:"name"`
-	Kind    string           `json:"kind"`
-	Version string           `json:"version"`
-	Columns []AnalysisColumn `json:"columns"`
+	Key        string              `json:"key"`
+	Name       string              `json:"name"`
+	Kind       string              `json:"kind"`
+	Version    string              `json:"version"`
+	Columns    []AnalysisColumn    `json:"columns"`
+	References []AnalysisReference `json:"references,omitempty"`
+}
+
+// AnalysisReference is owner-authored provenance for one governed dataset.
+// It is descriptive metadata only: consumers cannot use it to broaden the
+// authorized source scope or address storage directly.
+type AnalysisReference struct {
+	Kind        string `json:"kind"` // business_object, knowledge_document, analysis_dataset
+	ID          string `json:"id"`
+	Label       string `json:"label,omitempty"`
+	Version     string `json:"version,omitempty"`
+	Subresource string `json:"subresource,omitempty"`
 }
 
 type AnalysisColumn struct {
 	Key       string `json:"key"`
+	Name      string `json:"name,omitempty"`
 	Type      string `json:"type"`
 	Unit      string `json:"unit"`
 	Precision int    `json:"precision,omitempty"`
@@ -130,12 +143,50 @@ type AnalysisSource struct {
 	Proof             string            `json:"proof"`
 }
 
+// AnalysisChartSpec is a declarative view over returned columns and rows. It
+// contains no expressions or executable content. A nil Chart is accompanied
+// by an explicit reason so callers never infer that a chart was truncated.
+type AnalysisChartSpec struct {
+	Type     string   `json:"type"` // bar, line
+	XColumn  string   `json:"x_column"`
+	YColumns []string `json:"y_columns"`
+}
+
+type AnalysisVisualization struct {
+	Chart         *AnalysisChartSpec `json:"chart"`
+	OmittedReason string             `json:"omitted_reason,omitempty"`
+}
+
+// AnalysisMissing summarizes absent result cells and explanatory issues.
+// Counts may overlap: null_value counts absent cells, while another code can
+// explain why the same cell is absent (for example zero_baseline).
+type AnalysisMissing struct {
+	Column string `json:"column"`
+	Code   string `json:"code"`
+	Count  string `json:"count"`
+}
+
+// AnalysisCoverage makes result limits explicit. Report currently fails the
+// whole request on overflow, so every successful result is complete and never
+// truncated. ReturnedRows and RequestedMaxRows let consumers distinguish a
+// short result from an undeclared partial page.
+type AnalysisCoverage struct {
+	Complete         bool              `json:"complete"`
+	Truncated        bool              `json:"truncated"`
+	ReturnedRows     int               `json:"returned_rows"`
+	RequestedMaxRows int               `json:"requested_max_rows"`
+	Missing          []AnalysisMissing `json:"missing"`
+}
+
 type AnalysisResult struct {
-	Spec    AnalysisRequest  `json:"spec"`
-	Columns []AnalysisColumn `json:"columns"`
-	Rows    []AnalysisRow    `json:"rows"`
-	Methods []AnalysisMethod `json:"methods"`
-	Source  AnalysisSource   `json:"source"`
+	Spec          AnalysisRequest       `json:"spec"`
+	Columns       []AnalysisColumn      `json:"columns"`
+	Rows          []AnalysisRow         `json:"rows"`
+	Methods       []AnalysisMethod      `json:"methods"`
+	Visualization AnalysisVisualization `json:"visualization"`
+	Coverage      AnalysisCoverage      `json:"coverage"`
+	References    []AnalysisReference   `json:"references"`
+	Source        AnalysisSource        `json:"source"`
 }
 
 type AnalysisResultAuthorization struct {
