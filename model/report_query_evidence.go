@@ -27,6 +27,12 @@ type ReportCatalog struct {
 	Reports    []ReportCatalogEntry `json:"reports"`
 	NextCursor string               `json:"next_cursor,omitempty"`
 	Truncated  bool                 `json:"truncated"`
+	ReadProof  string               `json:"read_proof,omitempty"`
+}
+
+type ReportCatalogReadAuthorization struct {
+	Request ReportCatalogRequest `json:"request"`
+	Result  ReportCatalog        `json:"result"`
 }
 
 // ReportQuerySource binds a real query result to its definition, authorized
@@ -41,6 +47,7 @@ type ReportQuerySource struct {
 	RowLimit          int    `json:"row_limit"`
 	Complete          bool   `json:"complete"`
 	Proof             string `json:"proof"`
+	ReadProof         string `json:"read_proof,omitempty"`
 }
 
 type ReportQueryResult struct {

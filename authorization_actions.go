@@ -5,6 +5,7 @@ package reportsdk
 const (
 	ActionReportSummaryGet       = "report.summary.get"
 	ActionReportQueryExecute     = "report.query.execute"
+	ActionReportResultsRead      = "report.results.read"
 	ActionReportSnapshotsRefresh = "report.snapshots.refresh"
 	ActionReportExportsPrepare   = "report.exports.prepare"
 )

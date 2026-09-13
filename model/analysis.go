@@ -41,6 +41,12 @@ type AnalysisCatalog struct {
 	Datasets   []AnalysisDataset `json:"datasets"`
 	NextCursor string            `json:"next_cursor,omitempty"`
 	Truncated  bool              `json:"truncated"`
+	ReadProof  string            `json:"read_proof,omitempty"`
+}
+
+type AnalysisCatalogReadAuthorization struct {
+	Request AnalysisCatalogRequest `json:"request"`
+	Result  AnalysisCatalog        `json:"result"`
 }
 
 // A filter is exactly one leaf, all-group or any-group. Values are bounded,
@@ -141,6 +147,7 @@ type AnalysisSource struct {
 	Scope             string            `json:"scope"`
 	Complete          bool              `json:"complete"`
 	Proof             string            `json:"proof"`
+	ReadProof         string            `json:"read_proof,omitempty"`
 }
 
 // AnalysisChartSpec is a declarative view over returned columns and rows. It
