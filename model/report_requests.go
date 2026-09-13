@@ -24,4 +24,7 @@ type ReportExportPrepareRequest struct {
 	AuditID        string                   `json:"audit_id"`
 	IdempotencyKey string                   `json:"-"`
 	Scope          ReportExportScopeRequest `json:"scope"`
+	// RetryOfJobID requests one new, freshly authorized attempt for a terminal
+	// failed job. The previous job, payload and receipt remain immutable.
+	RetryOfJobID string `json:"retry_of_job_id,omitempty"`
 }

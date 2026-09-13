@@ -18,3 +18,14 @@ type ResultReader interface {
 	AuthorizeQueryResultRead(context.Context, model.ReportQueryResultAuthorization, model.ReportAuthority) error
 	AuthorizeAnalysisResultRead(context.Context, model.AnalysisResultAuthorization, model.ReportAuthority) error
 }
+
+// SharedResultReader authenticates an original producer's immutable proof,
+// then checks the actual reader's current audience, fields and source scope.
+// producer is proof provenance only; it never supplies execution authority to
+// reader. The containing resource's explicit publication is checked by its owner.
+type SharedResultReader interface {
+	AuthorizeSharedCatalogRead(context.Context, model.ReportCatalogReadAuthorization, model.ReportAuthority, model.ReportAuthority) error
+	AuthorizeSharedAnalysisCatalogRead(context.Context, model.AnalysisCatalogReadAuthorization, model.ReportAuthority, model.ReportAuthority) error
+	AuthorizeSharedQueryResultRead(context.Context, model.ReportQueryResultAuthorization, model.ReportAuthority, model.ReportAuthority) error
+	AuthorizeSharedAnalysisResultRead(context.Context, model.AnalysisResultAuthorization, model.ReportAuthority, model.ReportAuthority) error
+}

@@ -17,3 +17,11 @@ import (
 type ResultReadScopeReader interface {
 	ReadReportResultScope(context.Context, model.ReportSchema, model.ReportSubject) (string, error)
 }
+
+// SharedResultScopeAuthorizer proves that the actual reader can read every
+// source row/relationship, field and organization covered by the producer's
+// current projection. A broader reader may qualify. No query is executed.
+// Unsupported or unprovable predicates must fail closed.
+type SharedResultScopeAuthorizer interface {
+	AuthorizeSharedReportResultScope(context.Context, model.ReportSchema, model.ReportSubject, model.ReportSubject) error
+}
