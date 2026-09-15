@@ -85,8 +85,11 @@ type ReportExportControlSchema struct {
 	DownloadObject           string                          `json:"download_object,omitempty"`
 	RecordMapping            ReportExportRecordMappingSchema `json:"record_mapping"`
 	MaxRows                  int                             `json:"max_rows,omitempty"`
-	Reason                   string                          `json:"reason,omitempty"`
-	Config                   map[string]any                  `json:"config,omitempty"`
+	// DownloadTTLSeconds is authored by each business export control. Report and
+	// Runtime validate the duration, but do not impose a product-specific maximum.
+	DownloadTTLSeconds int64          `json:"download_ttl_seconds,omitempty"`
+	Reason             string         `json:"reason,omitempty"`
+	Config             map[string]any `json:"config,omitempty"`
 }
 
 // ReportExportRecordMappingSchema binds the generic governed export workflow

@@ -55,6 +55,13 @@ type ExportGateway interface {
 	PrepareReportExport(context.Context, reportmodel.ReportExportPrepareRequest, reportmodel.ReportSchema, reportmodel.ReportExportControlSchema, reportmodel.ReportSubject) (reportmodel.ReportExportJob, error)
 }
 
+// ExportDeliveryGateway is optional so existing Report hosts retain their
+// asynchronous Prepare contract. Hosts that implement it may complete a
+// bounded export through their durable file owner during the current request.
+type ExportDeliveryGateway interface {
+	PrepareReportExportDelivery(context.Context, reportmodel.ReportExportPrepareRequest, reportmodel.ReportSchema, reportmodel.ReportExportControlSchema, reportmodel.ReportSubject) (reportmodel.ReportExportPreparation, error)
+}
+
 // ApplicationHost is the complete embedded host boundary required by Report
 // business use cases. Persistence-only tests may still implement Host, while a
 // production module factory must reject a host that lacks these capabilities.

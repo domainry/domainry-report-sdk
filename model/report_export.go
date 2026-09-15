@@ -1,5 +1,7 @@
 package reportmodel
 
+import "io"
+
 // ReportExportScopeRequest is the closed, user-controlled part of a governed
 // export. Values bind only declared object_sql_v1 parameters; requests never
 // supply SQL text or request-selected identifiers.
@@ -58,4 +60,20 @@ type ReportExportJob struct {
 	ErrorCode      string                   `json:"error_code,omitempty"`
 	CreatedAt      string                   `json:"created_at"`
 	UpdatedAt      string                   `json:"updated_at"`
+}
+
+// ReportExportArtifact is the already persisted, currently authorized export
+// response. Content is local transport state and is never serialized as JSON.
+type ReportExportArtifact struct {
+	ID, Filename, ContentType, ContentSHA256 string
+	Size                                     int64
+	ExpiresAt                                string
+	Content                                  io.ReadCloser `json:"-"`
+}
+
+// ReportExportPreparation always carries the durable Data Exchange job. An
+// Artifact is present only when the bounded export completed in this request.
+type ReportExportPreparation struct {
+	Job      ReportExportJob
+	Artifact *ReportExportArtifact
 }

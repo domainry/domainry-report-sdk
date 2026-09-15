@@ -122,6 +122,13 @@ type Exports interface {
 	SourceVersion(context.Context, model.ReportExportExecutionRequest, model.ReportAuthority) (model.ReportSnapshotSourceVersion, error)
 }
 
+// ExportDelivery is an optional extension for an auto-routed export response.
+// Implementations return the same durable job as Prepare and may also return
+// its completed, reauthorized artifact for an immediate HTTP response.
+type ExportDelivery interface {
+	PrepareForDelivery(context.Context, model.ReportExportPrepareRequest, model.ReportAuthority) (model.ReportExportPreparation, error)
+}
+
 // ApplicationBinding is the business-use-case boundary implemented by a full
 // Report owner. Persistence repositories remain available only for host
 // bootstrap and metadata restoration; product callers use these application
