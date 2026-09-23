@@ -3,6 +3,7 @@ package modulehost
 import (
 	"context"
 
+	metadatasdk "github.com/domainry/domainry-metadata-sdk"
 	ormmigration "github.com/domainry/domainry-orm/migration"
 	"github.com/domainry/domainry-orm/sqlhost"
 )
@@ -33,4 +34,11 @@ type Host interface {
 	DatabaseFor(context.Context) DBTX
 	Dialect() Dialect
 	Migrations() MigrationRegistrar
+}
+
+// DefinitionStoreHost supplies the shared installation-scoped Definition
+// store. Report borrows this host port in Module mode and supplies the same
+// contract from its service database in SaaS mode.
+type DefinitionStoreHost interface {
+	DefinitionStore() metadatasdk.DefinitionStore
 }

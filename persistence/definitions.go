@@ -2,22 +2,15 @@ package persistence
 
 import (
 	"context"
-	"encoding/json"
-)
 
-type Definition struct {
-	ResourceType string
-	Key          string
-	ObjectKey    string
-	Name         string
-	Payload      json.RawMessage
-}
+	reportmodel "github.com/domainry/domainry-report-sdk/model"
+)
 
 type DefinitionSnapshot struct {
 	SchemaVersion string
 	SourceKind    string
 	SourceID      string
-	Definitions   []Definition
+	Definitions   []reportmodel.ReportDefinitionSchema
 }
 
 type DefinitionRepository interface {

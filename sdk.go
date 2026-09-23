@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/domainry/domainry-foundation/modulecapability"
 	model "github.com/domainry/domainry-report-sdk/model"
 	"github.com/domainry/domainry-report-sdk/modulehost"
 	"github.com/domainry/domainry-report-sdk/persistence"
@@ -149,7 +148,6 @@ type ApplicationHostBinder interface {
 }
 
 type Binding interface {
-	modulecapability.Binding
 	Descriptor() Descriptor
 	Definitions() persistence.DefinitionRepository
 	Snapshots() persistence.SnapshotRepository

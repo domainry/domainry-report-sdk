@@ -2,6 +2,16 @@ package reportmodel
 
 type LocalizedTextMap map[string]map[string]string
 
+// ReportDefinitionSchema is one immutable Report definition version. Related
+// examples and policies are versioned with the Report instead of occupying
+// independent generic-definition tables.
+type ReportDefinitionSchema struct {
+	Report                 ReportSchema                        `json:"report"`
+	OperationStateExamples []ReportOperationStateExampleSchema `json:"operation_state_examples,omitempty"`
+	SensitiveFieldPolicies []ReportSensitiveFieldPolicySchema  `json:"sensitive_field_policies,omitempty"`
+	ExportControls         []ReportExportControlSchema         `json:"export_controls,omitempty"`
+}
+
 type ReportSchema struct {
 	Key                  string                       `json:"key"`
 	Name                 string                       `json:"name,omitempty"`
