@@ -105,6 +105,49 @@ func (e *Error) Unwrap() error {
 	return e.Cause
 }
 
+func (e *Error) ApplicationErrorKind() string {
+	if e == nil {
+		return ""
+	}
+	switch e.StatusCode {
+	case 400, 413, 422:
+		return "bad_request"
+	case 401, 403:
+		return "forbidden"
+	case 404:
+		return "not_found"
+	case 409, 412:
+		return "conflict"
+	case 429:
+		return "rate_limited"
+	case 502, 503, 504:
+		return "unavailable"
+	default:
+		if e.Retryable {
+			return "unavailable"
+		}
+		return "internal"
+	}
+}
+
+func (e *Error) ErrorCode() string {
+	if e == nil {
+		return ""
+	}
+	return strings.TrimSpace(e.Code)
+}
+
+func (e *Error) ErrorParams() map[string]string {
+	if e == nil || len(e.Params) == 0 {
+		return nil
+	}
+	result := make(map[string]string, len(e.Params))
+	for key, value := range e.Params {
+		result[key] = value
+	}
+	return result
+}
+
 type Queries interface {
 	Summary(context.Context, model.ReportSummaryRequest, model.ReportAuthority) (model.ReportSummary, error)
 	QueryObjectSQL(context.Context, model.ReportObjectSQLRequest, model.ReportAuthority) (model.ReportSummary, error)
