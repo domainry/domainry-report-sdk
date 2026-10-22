@@ -364,6 +364,9 @@ func objectSQLField(object reportengine.Object, key string) (reportengine.Field,
 		return reportengine.Field{Key: key, Type: "text"}, true
 	}
 	if key == "id" {
+		return reportengine.Field{Key: key, Type: "integer", Unique: true}, true
+	}
+	if key == "record_id" {
 		return reportengine.Field{Key: key, Type: "text", Unique: true}, true
 	}
 	if key == "created_at" || key == "updated_at" {

@@ -32,8 +32,9 @@ func TestObjectSQLContainsBindsTextFieldAndLiteralParameter(t *testing.T) {
 			t.Fatalf("literal=%q parameters=%+v error=%v", keyword, parameters, err)
 		}
 	}
-	// The envelope ID is a permitted filter field, never a new projected business field.
-	schema.SQL = "SELECT COUNT(v.id) AS records FROM voucher v WHERE CONTAINS(v.id, :keyword) LIMIT 1"
+	// The envelope business ID is a permitted filter field. The physical id is
+	// an integer and therefore is deliberately not accepted by CONTAINS.
+	schema.SQL = "SELECT COUNT(v.id) AS records FROM voucher v WHERE CONTAINS(v.record_id, :keyword) LIMIT 1"
 	if _, _, err := CanonicalReportObjectSQL(schema, objects); err != nil {
 		t.Fatal(err)
 	}
@@ -46,6 +47,7 @@ func TestObjectSQLContainsRejectsUnsafeAndNonTextShapes(t *testing.T) {
 	for _, expression := range []string{
 		"CONTAINS(v.customer)", "CONTAINS(v.customer, :keyword, :keyword)", "CONTAINS(v.amount, :keyword)",
 		"CONTAINS(v.status, :keyword)", "CONTAINS(v.customer_id, :keyword)", "CONTAINS(v.created_at, :keyword)",
+		"CONTAINS(v.id, :keyword)",
 		"CONTAINS(v.customer, v.customer)", "CONTAINS(:keyword, :keyword)", "CONTAINS(v.customer, :count)",
 		"CONTAINS(v.customer, 'literal')", "CONTAINS(v.customer, :missing)", "CONTAINS(v.owner_org_id, :keyword)",
 		"CONTAINS(COALESCE(v.customer, :keyword), :keyword)", "evil.CONTAINS(v.customer, :keyword)",

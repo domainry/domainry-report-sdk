@@ -43,9 +43,10 @@ type ReportExportExecution struct {
 }
 
 // ReportExportJob is the Report-specific projection of a Data Exchange job.
-// ID is the Data Exchange job identity used by all lifecycle routes.
+// JobID is the Data Exchange business identity used by lifecycle routes.
 type ReportExportJob struct {
-	ID             string                   `json:"id"`
+	ID             int64                    `json:"id"`
+	JobID          string                   `json:"job_id"`
 	AuditID        string                   `json:"audit_id"`
 	ReportKey      string                   `json:"report_key"`
 	ObjectKey      string                   `json:"object_key"`
@@ -65,10 +66,14 @@ type ReportExportJob struct {
 // ReportExportArtifact is the already persisted, currently authorized export
 // response. Content is local transport state and is never serialized as JSON.
 type ReportExportArtifact struct {
-	ID, Filename, ContentType, ContentSHA256 string
-	Size                                     int64
-	ExpiresAt                                string
-	Content                                  io.ReadCloser `json:"-"`
+	ID            int64
+	ArtifactID    string
+	Filename      string
+	ContentType   string
+	ContentSHA256 string
+	Size          int64
+	ExpiresAt     string
+	Content       io.ReadCloser `json:"-"`
 }
 
 // ReportExportPreparation always carries the durable Data Exchange job. An

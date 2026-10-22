@@ -422,7 +422,7 @@ func appendObjectSQLStableOrder(plan *reportmodel.ReportObjectSQLPlan) {
 		}
 	}
 	for _, source := range plan.Sources {
-		expression := reportmodel.ReportObjectSQLExpression{Kind: "field", Alias: source.Alias, FieldKey: "id", Type: "text"}
+		expression := reportmodel.ReportObjectSQLExpression{Kind: "field", Alias: source.Alias, FieldKey: "id", Type: "integer"}
 		if !objectSQLOrderContains(plan.OrderBy, expression) {
 			plan.OrderBy = append(plan.OrderBy, reportmodel.ReportObjectSQLOrder{Expression: expression, Direction: "asc"})
 		}

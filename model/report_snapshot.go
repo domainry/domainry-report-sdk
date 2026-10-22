@@ -1,7 +1,8 @@
 package reportmodel
 
 type ReportSnapshot struct {
-	ID              string            `json:"id"`
+	ID              int64             `json:"id"`
+	SnapshotID      string            `json:"snapshot_id"`
 	WorkspaceID     string            `json:"workspace_id"`
 	ReportKey       string            `json:"report_key"`
 	AccessScopeHash string            `json:"-"`

@@ -54,7 +54,7 @@ func objectSQLJoinEqualityBacked(leftObject reportengine.Object, left reportengi
 }
 
 func objectSQLRelationTargets(field reportengine.Field, objectKey, targetField string) bool {
-	return strings.TrimSpace(field.Type) == "relation" && strings.TrimSpace(field.RelationTarget) == strings.TrimSpace(objectKey) && targetField == "id"
+	return strings.TrimSpace(field.Type) == "relation" && strings.TrimSpace(field.RelationTarget) == strings.TrimSpace(objectKey) && targetField == "record_id"
 }
 
 func objectSQLFieldUnique(field reportengine.Field) bool {
@@ -82,13 +82,13 @@ func (c *objectSQLCompiler) joinRelationCandidates(rightAlias string) []string {
 			continue
 		}
 		for _, field := range object.Fields {
-			if objectSQLRelationTargets(field, rightObject.Key, "id") {
-				result = append(result, alias+"."+field.Key+" = "+rightAlias+".id")
+			if objectSQLRelationTargets(field, rightObject.Key, "record_id") {
+				result = append(result, alias+"."+field.Key+" = "+rightAlias+".record_id")
 			}
 		}
 		for _, field := range rightObject.Fields {
-			if objectSQLRelationTargets(field, object.Key, "id") {
-				result = append(result, rightAlias+"."+field.Key+" = "+alias+".id")
+			if objectSQLRelationTargets(field, object.Key, "record_id") {
+				result = append(result, rightAlias+"."+field.Key+" = "+alias+".record_id")
 			}
 		}
 	}

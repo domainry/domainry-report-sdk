@@ -6,7 +6,8 @@ import (
 )
 
 type Snapshot struct {
-	ID              string            `json:"id"`
+	ID              int64             `json:"id"`
+	SnapshotID      string            `json:"snapshot_id"`
 	WorkspaceID     string            `json:"workspace_id"`
 	ReportKey       string            `json:"report_key"`
 	AccessScopeHash string            `json:"-"`
@@ -36,8 +37,9 @@ type SnapshotCompleteRequest struct {
 }
 
 type SnapshotFailRequest struct {
-	WorkspaceID, ID, ExpectedStatus, ErrorCode, LeaseOwner string
-	FencingToken                                           int64
+	WorkspaceID, ExpectedStatus, ErrorCode, LeaseOwner string
+	ID                                                 int64
+	FencingToken                                       int64
 }
 
 type SnapshotClaimDisposition string
