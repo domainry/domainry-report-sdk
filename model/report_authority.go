@@ -48,7 +48,6 @@ type ReportBusinessClaim struct {
 type ReportSubject struct {
 	Principal             identitysdk.Principal          `json:"principal"`
 	RequestID             string                         `json:"request_id,omitempty"`
-	CorrelationID         string                         `json:"correlation_id,omitempty"`
 	CausationID           string                         `json:"causation_id,omitempty"`
 	BusinessProfiles      []ReportBusinessProfile        `json:"business_profiles,omitempty"`
 	ActiveBusinessProfile *ReportBusinessProfile         `json:"active_business_profile,omitempty"`

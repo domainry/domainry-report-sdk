@@ -12,9 +12,7 @@ import (
 )
 
 const (
-	ProtocolVersionV1 = "domainry-report-protocol-v1"
-	ProtocolVersionV2 = "domainry-report-protocol-v2"
-	ProtocolVersionV3 = "domainry-report-protocol-v3"
+	ProtocolVersionV4 = "domainry-report-protocol-v4"
 
 	CapabilityDefinitionsSync = "definitions.sync"
 	CapabilityQueriesExecute  = "queries.execute"
@@ -48,7 +46,7 @@ type Descriptor struct {
 }
 
 func (d Descriptor) Validate() error {
-	if d.ProtocolVersion != ProtocolVersionV3 {
+	if d.ProtocolVersion != ProtocolVersionV4 {
 		return fmt.Errorf("unsupported Report protocol %q", d.ProtocolVersion)
 	}
 	if d.Mode != DeploymentModeModule && d.Mode != DeploymentModeSaaS {
