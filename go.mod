@@ -3,9 +3,9 @@ module github.com/domainry/domainry-report-sdk
 go 1.26.0
 
 require (
-	github.com/domainry/domainry-foundation v0.2.17
-	github.com/domainry/domainry-identity-sdk v0.1.37
-	github.com/domainry/domainry-notification-sdk v0.1.24
+	github.com/domainry/domainry-foundation v0.2.18
+	github.com/domainry/domainry-identity-sdk v0.1.38
+	github.com/domainry/domainry-notification-sdk v0.1.25
 	github.com/domainry/domainry-orm v0.1.34
 	github.com/shopspring/decimal v1.4.0
 	vitess.io/vitess v0.23.3
